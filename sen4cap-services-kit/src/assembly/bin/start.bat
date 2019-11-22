@@ -1,0 +1,1 @@
+java -cp ../modules/*;../lib/*;../services/*;../plugins/* org.esa.sen4cap.ServicesStartup
