@@ -22,6 +22,7 @@ import org.esa.sen2agri.commons.Config;
 import org.esa.sen2agri.entities.DownloadProduct;
 import org.esa.sen2agri.entities.Site;
 import org.esa.sen2agri.entities.enums.Satellite;
+import org.esa.sen2agri.entities.enums.Status;
 import org.esa.sen2agri.scheduling.AbstractJob;
 import org.esa.sen2agri.scheduling.JobDescriptor;
 import org.esa.sen4cap.preprocessing.Configuration;
@@ -99,9 +100,17 @@ public class Sentinel1Level2Job extends AbstractJob {
                                                                                              Satellite.Sentinel1,
                                                                                              LocalDate.now().minusDays(Integer.parseInt(Configuration.getSetting(ConfigurationKeys.S1_PROCESSOR_WAIT_FOR_ORBIT_FILES))),
                                                                                              latestFirst);
+        // products that appear to be processed, but there are no L2 products issued from them
         final List<DownloadProduct> stalledProducts = this.persistenceManager.getStalledProducts(site.getId(), daysOffset);
         logger.info(String.format("Found %d stalled products", stalledProducts.size()));
         products.addAll(stalledProducts);
+
+        // products that may have failed to be processed due to insufficient memory (maybe other concurrent processing)
+        final List<DownloadProduct> recoverableFailedProducts = this.persistenceManager.getProducts(site.getId(),
+                                                                                                    Satellite.Sentinel1.value(),
+                                                                                                    Status.PROCESSING_FAILED,
+                                                                                                    "Cannot construct DataBuffer");
+        products.addAll(recoverableFailedProducts);
         products.sort(Comparator.comparing(DownloadProduct::getProductDate));
         logger.info(String.format("Found %d products eligible for pre-processing", products.size()));
         final Path targetRoot = getSiteRootPath(site);

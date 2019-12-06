@@ -336,15 +336,23 @@ public class Sentinel1Level2Worker {
                         message = String.format("Error executing step %d (%s) [codes=%s]: %s",
                                                 i - 1, stepName, Arrays.toString(codes), args);
                         ProductLog.error(productFolderName, message);
-                        Config.getPersistenceManager().saveLog(firstStep.getName(), currentTask.getId(), subSteps[0].getHost(),
-                                                               Duration.between(startTIme, Instant.now()).toMillis(), output, message);
+                        try {
+                            Config.getPersistenceManager().saveLog(firstStep.getName(), currentTask.getId(), subSteps[0].getHost(),
+                                                                   Duration.between(startTIme, Instant.now()).toMillis(), output, message);
+                        } catch (Exception ex) {
+                            logger.warning(String.format("Cannot save step output to database. Reason: %s", ex.getMessage()));
+                        }
                         notify(Level.SEVERE, message);
                         JobHelper.update(currentTask, ActivityStatus.ERROR);
                         errors.add(output);
                         break;
                     } else {
-                        Config.getPersistenceManager().saveLog(firstStep.getName(), currentTask.getId(), subSteps[0].getHost(),
-                                                               Duration.between(startTIme, Instant.now()).toMillis(), output, "");
+                        try {
+                            Config.getPersistenceManager().saveLog(firstStep.getName(), currentTask.getId(), subSteps[0].getHost(),
+                                                                   Duration.between(startTIme, Instant.now()).toMillis(), output, "");
+                        } catch (Exception ex) {
+                            logger.warning(String.format("Cannot save step output to database. Reason: %s", ex.getMessage()));
+                        }
                     }
                 } finally {
                     ProductLog.debug(productFolderName,
